@@ -4,7 +4,7 @@
 #include <vector>
 //
 #include <cutemuduo/channel.hpp>
-#include <cutemuduo/non_copyable.hpp>
+#include <cutemuduo/noncopyable.hpp>
 #include <cutemuduo/timestamp.hpp>
 
 namespace cutemuduo {
