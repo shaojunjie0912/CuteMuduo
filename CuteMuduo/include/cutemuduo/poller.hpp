@@ -35,7 +35,8 @@ public:
 
     // TODO: protected?
 protected:
-    std::unordered_map<int, Channel*> channels_;  // fd -> Channel 映射
+    using ChannelMap = std::unordered_map<int, Channel*>;
+    ChannelMap channels_;  // (哈希表) fd -> Channel 映射
 
 private:
     EventLoop* owner_loop_;  // Poller 所属的事件循环 EventLoop

@@ -8,11 +8,11 @@ class Timestamp {
 public:
     Timestamp();
     explicit Timestamp(int64_t microSecondsSinceEpoch);
-    static Timestamp now();
-    std::string toString() const;
+    static Timestamp Now();
+    std::string ToString() const;
 
 private:
-    int64_t microSecondsSinceEpoch_;
+    int64_t micro_seconds_since_epoch_;
 };
 
 }  // namespace cutemuduo
