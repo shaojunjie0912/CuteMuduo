@@ -68,6 +68,24 @@ void EpollPoller::UpdateChannel(Channel* channel) {
     }
 }
 
+// UpdateChannel/RemoveChannel 中涉及到 epoll_ctl 核心操作的封装
+void EpollPoller::Update(int operation, Channel* channel) {
+    epoll_event event;
+    event.events = channel->events();  // channel 上(新的)感兴趣的事件
+    event.data.fd = channel->fd();     // NOTE: event.data 是一个联合体
+    event.data.ptr = channel;          // 作用: 通过 fd 找到对应的 Channel 对象
+
+    // operation: EPOLL_CTL_ADD, EPOLL_CTL_MOD, EPOLL_CTL_DEL
+    // event: 新的感兴趣的事件
+    if (epoll_ctl(epoll_fd_, operation, channel->fd(), &event) < 0) {
+        if (operation == EPOLL_CTL_DEL) {
+            LOG_ERROR("epoll_ctl del error:%d\n", errno);
+        } else {
+            LOG_FATAL("epoll_ctl add/mod error:%d\n", errno);
+        }
+    }
+}
+
 void EpollPoller::RemoveChannel(Channel* channel) {
     channels_.erase(channel->fd());  // 从哈希表中删除
 
@@ -76,22 +94,6 @@ void EpollPoller::RemoveChannel(Channel* channel) {
     }
 
     channel->SetIndex(-1);  // -1: kNew
-}
-
-// UpdateChannel/RemoveChannel 中涉及到 epoll_ctl 核心操作的封装
-void EpollPoller::Update(int operation, Channel* channel) {
-    epoll_event event;
-    event.events = channel->events();  // channel 上(新的)感兴趣的事件
-    event.data.fd = channel->fd();     // NOTE: event.data 是一个联合体
-    event.data.ptr = channel;          // 作用: 通过 fd 找到对应的 Channel 对象
-
-    if (epoll_ctl(epoll_fd_, operation, channel->fd(), &event) < 0) {
-        if (operation == EPOLL_CTL_DEL) {
-            LOG_ERROR("epoll_ctl del error:%d\n", errno);
-        } else {
-            LOG_FATAL("epoll_ctl add/mod error:%d\n", errno);
-        }
-    }
 }
 
 void EpollPoller::FillActiveChannels(int num_events, ChannelList* active_channels) const {

@@ -72,6 +72,8 @@ public:
 
     void Tie(std::shared_ptr<void> const& obj);
 
+    void Remove();
+
 private:
     void Update();
 

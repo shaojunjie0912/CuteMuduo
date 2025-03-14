@@ -48,6 +48,27 @@ void TcpConnection::SetState(StateE const& new_s) {
     state_ = new_s;
 }
 
+void TcpConnection::HandleRead(Timestamp receive_time) {
+    int savedErrno = 0;
+    ssize_t n = input_buffer_.ReadFd(channel_->fd(), &savedErrno);
+    // 接收到数据
+    if (n > 0) {
+        message_callback_(shared_from_this(), &input_buffer_, receive_time);
+    }
+    // 客户端断开
+    else if (n == 0) {
+        HandleClose();
+    }
+    // 出错了
+    else {
+        errno = savedErrno;
+        LOG_ERROR("TcpConnection::handleRead");
+        HandleError();
+    }
+}
+
+void TcpConnection::HandleWrite() {}
+
 void TcpConnection::HandleClose() {
     LOG_INFO("TcpConnection::HandleClose fd=%d state=%s\n", channel_->fd(), StateToString().c_str());
     SetState(StateE::kDisconnected);
@@ -56,10 +77,6 @@ void TcpConnection::HandleClose() {
     connection_callback_(conn_ptr);                 // TODO: 用于通知上层应用连接状态的变化
     close_callback_(conn_ptr);                      // TODO: 用于通知 TcpServer 进行清理工作
 }
-
-void TcpConnection::HandleRead(Timestamp receive_time) {}
-
-void TcpConnection::HandleWrite() {}
 
 void TcpConnection::HandleError() {
     int optval;
@@ -131,7 +148,18 @@ bool TcpConnection::IsConnected() const {
 
 void TcpConnection::ConnectEstablished() {
     SetState(StateE::kConnected);
-    channel_->Tie(shared_from_this());  // 作用:
+    channel_->Tie(shared_from_this());         // NOTE: 用于保证 TcpConnection 对象在 channel 中的生命周期
+    channel_->EnableReading();                 // 开启 channel 的读事件监听
+    connection_callback_(shared_from_this());  // 新连接建立回调
+}
+
+void TcpConnection::ConnectDestroyed() {
+    if (state_ == StateE::kConnected) {
+        SetState(StateE::kDisconnected);
+        channel_->DisableAll();
+        connection_callback_(shared_from_this());
+    }
+    channel_->Remove();
 }
 
 void TcpConnection::ShutdownInLoop() {}

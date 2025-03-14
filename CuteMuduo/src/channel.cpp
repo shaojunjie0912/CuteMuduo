@@ -32,6 +32,10 @@ void Channel::Update() {
     loop_->UpdateChannel(this);
 }
 
+void Channel::Remove() {
+    loop_->RemoveChannel(this);
+}
+
 // 向 epoll 中注册、删除 fd 感兴趣的事件
 // NOTE: 修改后要更新, Update() 本质调用 epoll_ctl()
 void Channel::EnableReading() {

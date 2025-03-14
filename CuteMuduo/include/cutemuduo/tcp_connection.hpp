@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 //
+#include <cutemuduo/buffer.hpp>
 #include <cutemuduo/callbacks.hpp>
 #include <cutemuduo/inet_address.hpp>
 #include <cutemuduo/noncopyable.hpp>
