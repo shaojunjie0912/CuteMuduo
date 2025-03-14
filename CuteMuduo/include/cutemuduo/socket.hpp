@@ -12,10 +12,9 @@ public:
 
     ~Socket();
 
-    int sockfd() const;
-
+public:
     // bind
-    void BindAddress(const InetAddress &localaddr);
+    void BindAddress(InetAddress const &localaddr);
 
     // listen
     void Listen();
@@ -23,12 +22,14 @@ public:
     // accept
     int Accept(InetAddress *peeraddr);
 
-    // 设置半关闭
-    void ShutdownWrite();
+    void ShutdownWrite();         // 关闭套接字的写端(即不能往外发送数据)(但读端可以接收数据)
     void SetTcpNoDelay(bool on);  // 设置Nagel算法
     void SetReuseAddr(bool on);   // 设置地址复用
     void SetReusePort(bool on);   // 设置端口复用
     void SetKeepAlive(bool on);   // 设置长连接
+
+public:
+    int sockfd() const;
 
 private:
     int sockfd_;
