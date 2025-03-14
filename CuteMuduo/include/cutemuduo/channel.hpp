@@ -12,8 +12,9 @@ namespace cutemuduo {
 
 class EventLoop;
 
-// HACK: 感觉 Channel 可以简单理解为对 fd 的封装
+// HACK: 感觉 Channel 可以简单理解为对 fd 上发生事件及处理事件逻辑的封装
 // 所以活跃的 Channel(即 active_channels) 指的就是有事件发生的 fd
+// NOTE: Channel 不拥有 fd, 而 Socket 创建并拥有 fd, Socket 析构时关闭 fd
 class Channel : NonCopyable {
 public:
     // 以 EventLoop(事件循环) 和 fd(文件描述符) 作为参数构造 Channel

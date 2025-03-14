@@ -6,6 +6,7 @@ namespace cutemuduo {
 
 class InetAddress;
 
+// Socket 类是对 fd 的封装, 拥有 fd, 并负责在析构时关闭 fd
 class Socket : NonCopyable {
 public:
     explicit Socket(int sockfd);
