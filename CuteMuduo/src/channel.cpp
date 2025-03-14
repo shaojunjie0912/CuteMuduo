@@ -1,9 +1,10 @@
 #include <cutemuduo/channel.hpp>
 #include <cutemuduo/event_loop.hpp>
+#include <cutemuduo/logger.hpp>
 
 namespace cutemuduo {
 
-Channel::Channel(EventLoop* loop, int fd) : loop_(loop), fd_(fd), events_(0), revents_(0), index_(-1) {}
+Channel::Channel(EventLoop* loop, int fd) : loop_(loop), fd_(fd), events_(0), revents_(0), index_(-1), tied_(false) {}
 
 Channel::~Channel() {}
 
@@ -79,7 +80,43 @@ void Channel::SetRevents(int revents) {
 }
 
 // 处理事件
-// void Channel::HandleEvent(Timestamp receive_time) {}
+void Channel::HandleEvent(Timestamp receive_time) {
+    if (tied_) {
+        std::shared_ptr<void> guard = tie_.lock();
+        if (!guard) {
+            return;  // 提升失败，不做任何处理
+        }
+    }
+    HandleEventWithGuard(receive_time);
+}
+
+void Channel::HandleEventWithGuard(Timestamp receiveTime) {
+    LOG_INFO("channel HandleEvent revents: %d\n", revents_);
+    // 关闭, 当TcpConnection对应Channel 通过shutdown 关闭写端 epoll触发EPOLLHUP
+    if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
+        if (close_callback_) {
+            close_callback_();
+        }
+    }
+    // 错误
+    if (revents_ & EPOLLERR) {
+        if (error_callback_) {
+            error_callback_();
+        }
+    }
+    // 读
+    if (revents_ & (EPOLLIN | EPOLLPRI)) {
+        if (read_callback_) {
+            read_callback_(receiveTime);
+        }
+    }
+    // 写
+    if (revents_ & EPOLLOUT) {
+        if (write_callback_) {
+            write_callback_();
+        }
+    }
+}
 
 int Channel::fd() const {
     return fd_;
@@ -95,6 +132,13 @@ int Channel::index() const {
 
 void Channel::SetIndex(int index) {
     index_ = index;
+}
+
+// NOTE: 传入 Channel 中的回调函数是 TcpConnection 的成员函数
+// 则调用时要确保 TcpConnection 对象存在
+void Channel::Tie(std::shared_ptr<void> const& obj) {
+    tie_ = obj;
+    tied_ = true;
 }
 
 }  // namespace cutemuduo

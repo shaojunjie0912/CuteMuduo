@@ -25,35 +25,52 @@ public:
     using EventCallback = std::function<void()>;  // muduo仍使用typedef
     using ReadEventCallback = std::function<void(Timestamp)>;
 
-    // 设置回调函数对象
+    // =========== 设置回调函数对象 ===========
     void SetReadCallback(ReadEventCallback cb);
+
     void SetWriteCallback(EventCallback cb);
+
     void SetCloseCallback(EventCallback cb);
+
     void SetErrorCallback(EventCallback cb);
 
-    // 向 epoll 中注册、删除 fd 感兴趣的事件
+    // ====== 向 epoll 中注册、删除 fd 感兴趣的事件 ======
     void EnableReading();
+
     void DisableReading();
+
     void EnableWriting();
+
     void DisableWriting();
+
     void DisableAll();
 
-    // 检查 fd <当前>事件状态
+    // ======== 检查 fd <当前>事件状态 ========
     bool IsNoneEvent() const;
+
     bool IsWriting() const;
+
     bool IsReading() const;
 
     // 更新实际发生的事件
     void SetRevents(int revents);
 
-    // TODO: 处理事件
+    // 处理事件
     void HandleEvent(Timestamp receive_time);
+
+    //
+    void HandleEventWithGuard(Timestamp receiveTime);
 
 public:
     int fd() const;
+
     int events() const;
+
     int index() const;
+
     void SetIndex(int index);
+
+    void Tie(std::shared_ptr<void> const& obj);
 
 private:
     void Update();
@@ -63,6 +80,7 @@ private:
     int fd_;           // 文件描述符
     int events_;       // 感兴趣的事件
     int revents_;      // 实际发生的事件
+    int index_;        // Channel 在 Poller 中的状态(-1: 还没添加, 1: 已经添加, 2: 已经删除)
 
     static const int kNoneEvent = 0;                   // 无事件
     static const int kReadEvent = EPOLLIN | EPOLLPRI;  // 读事件
@@ -74,6 +92,9 @@ private:
     EventCallback close_callback_;     // 绑定的是TcpConnection::handleClose()
     EventCallback error_callback_;     // 绑定的是TcpConnection::handleError()
 
-    int index_;  // Channel 在 Poller 中的状态(-1: 还没添加, 1: 已经添加, 2: 已经删除)
+    // HACK: 想象成<监视>TcpConnection的生命周期
+    // 如果 lock() 失败, 说明 TcpConnection 对象已经销毁了, 就不调用回调
+    std::weak_ptr<void> tie_;  // 绑定 shared_ptr<TcpConnection>
+    bool tied_;
 };
 }  // namespace cutemuduo

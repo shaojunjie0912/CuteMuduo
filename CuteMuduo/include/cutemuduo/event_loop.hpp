@@ -32,6 +32,13 @@ public:
     // 判断EventLoop对象是否在自己的线程里
     bool IsInLoopThread() const;
 
+    using Functor = std::function<void()>;
+    // 在 EventLoop 当前所在线程中执行cb
+    void RunInLoop(Functor cb);
+
+    // 把上层注册的回调函数cb放入队列中, 唤醒loop所在的线程执行cb
+    void QueueInLoop(Functor cb);
+
 public:
 public:
     // 以下均调用 poller 的方法

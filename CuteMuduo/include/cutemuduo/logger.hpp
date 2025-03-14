@@ -25,7 +25,7 @@ private:
 #define LOG_INFO(format, ...)                       \
     do {                                            \
         Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(INFO);                   \
+        logger.SetLogLevel(LogLevel::INFO);         \
         char buf[1024] = {0};                       \
         snprintf(buf, 1024, format, ##__VA_ARGS__); \
         logger.Log(buf);                            \
@@ -34,7 +34,7 @@ private:
 #define LOG_ERROR(format, ...)                      \
     do {                                            \
         Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(ERROR);                  \
+        logger.SetLogLevel(LogLevel::ERROR);        \
         char buf[1024] = {0};                       \
         snprintf(buf, 1024, format, ##__VA_ARGS__); \
         logger.Log(buf);                            \
@@ -43,7 +43,7 @@ private:
 #define LOG_FATAL(format, ...)                      \
     do {                                            \
         Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(FATAL);                  \
+        logger.SetLogLevel(LogLevel::FATAL);        \
         char buf[1024] = {0};                       \
         snprintf(buf, 1024, format, ##__VA_ARGS__); \
         logger.Log(buf);                            \
@@ -54,7 +54,7 @@ private:
 #define LOG_DEBUG(format, ...)                      \
     do {                                            \
         Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(DEBUG);                  \
+        logger.SetLogLevel(LoLogLevel::DEBUG);      \
         char buf[1024] = {0};                       \
         snprintf(buf, 1024, format, ##__VA_ARGS__); \
         logger.Log(buf);                            \

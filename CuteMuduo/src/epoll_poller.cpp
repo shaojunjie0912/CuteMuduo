@@ -1,4 +1,5 @@
 #include <cutemuduo/epoll_poller.hpp>
+#include <cutemuduo/logger.hpp>
 
 namespace cutemuduo {
 
@@ -69,9 +70,11 @@ void EpollPoller::UpdateChannel(Channel* channel) {
 
 void EpollPoller::RemoveChannel(Channel* channel) {
     channels_.erase(channel->fd());  // 从哈希表中删除
+
     if (channel->index() == kAdded) {
         Update(EPOLL_CTL_DEL, channel);  // 从 epoll 中删除 channel->fd
     }
+
     channel->SetIndex(-1);  // -1: kNew
 }
 
@@ -84,11 +87,9 @@ void EpollPoller::Update(int operation, Channel* channel) {
 
     if (epoll_ctl(epoll_fd_, operation, channel->fd(), &event) < 0) {
         if (operation == EPOLL_CTL_DEL) {
-            // LOG_ERROR << "epoll_ctl() del error:" << errno;
-            printf("epoll_ctl() del error:%d\n", errno);
+            LOG_ERROR("epoll_ctl del error:%d\n", errno);
         } else {
-            // LOG_FATAL << "epoll_ctl add/mod error:" << errno;
-            printf("epoll_ctl add/mod error:%d\n", errno);
+            LOG_FATAL("epoll_ctl add/mod error:%d\n", errno);
         }
     }
 }
