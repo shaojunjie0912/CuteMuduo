@@ -18,7 +18,7 @@ public:
     // 内部就是调用epoll_wait，将有事件发生的channel通过activeChannels返回
     Timestamp Poll(int timeoutMs, ChannelList* active_channels) override;
 
-    // 更新 channel 上感兴趣的事件
+    // 更新 channel 上感兴趣的事件(如果 Channel 不在 Poller 中则添加进 Poller)
     void UpdateChannel(Channel* channel) override;
 
     // 当连接销毁时, 从 EpollPoller 移除 channel (即epoll 中删除 fd)

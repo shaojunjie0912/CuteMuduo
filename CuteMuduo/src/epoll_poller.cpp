@@ -40,21 +40,20 @@ Timestamp EpollPoller::Poll(int timeoutMs, ChannelList* active_channels) {
     return now;
 }
 
-// channel: 修改了感兴趣事件后的 Channel 对象
 void EpollPoller::UpdateChannel(Channel* channel) {
     int index{channel->index()};
-    // 若 kNew 则额外更新哈希表映射 + 添加到 epoll 中
+    // 若 kNew(还没添加到 Poller 中) 则额外更新哈希表映射 + 添加到 epoll 中
     if (index == kNew) {
         channels_[channel->fd()] = channel;  // NOTE: 哈希表 channels_ 来自基类 Poller
         channel->SetIndex(kAdded);           // 更新 Channel 的 index_
         Update(EPOLL_CTL_ADD, channel);      // 添加到 epoll 中
     }
-    // 若 kDeleted 则添加到 epoll 中
+    // 若 kDeleted(已经从 Poller 中删除) 则添加到 epoll 中
     else if (index == kDeleted) {
         channel->SetIndex(kAdded);       // 更新 Channel 的 index_
         Update(EPOLL_CTL_ADD, channel);  // 添加到 epoll 中
     }
-    // 若 kAdded 则更新 epoll 中的事件
+    // 若 kAdded(已经添加到 Poller 中) 则更新 epoll 中的事件
     else {
         // 如果 channel <当前>没有事件, 则删除 epoll 中的 channel->fd
         if (channel->IsNoneEvent()) {
