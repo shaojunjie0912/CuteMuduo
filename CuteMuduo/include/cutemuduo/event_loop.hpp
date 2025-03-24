@@ -35,9 +35,12 @@ public:
     using Functor = std::function<void()>;
 
     // 在 EventLoop 当前所在线程中执行cb
+    // 本线程调用: 立即执行
+    // 其他线程调用: 加入队列, 异步执行
     void RunInLoop(Functor cb);
 
     // 把上层注册的回调函数cb放入队列中, 唤醒loop所在的线程执行cb
+    // 无论是本线程/其他线程, 都加入队列, 等 Loop() 轮到它执行
     void QueueInLoop(Functor cb);
 
     // 在 EventLoop 所在线程中执行 pending_functors_ 中的回调函数

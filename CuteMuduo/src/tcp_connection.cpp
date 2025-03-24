@@ -6,6 +6,10 @@
 
 namespace cutemuduo {
 
+// NOTE: 补充有关 RunInLoop 和 QueueInLoop 的选择 (GPT)
+// 马上能做的用 RunInLoop
+// 怕递归、怕回调、怕死循环的用 QueueInLoop
+
 // 检查 EventLoop 是否为空
 static EventLoop* CheckLoopNotNull(EventLoop* loop) {
     if (!loop) {
@@ -44,9 +48,25 @@ void TcpConnection::SetState(StateE const& new_s) {
     state_ = new_s;
 }
 
+void TcpConnection::ConnectEstablished() {
+    SetState(StateE::kConnected);
+    channel_->Tie(shared_from_this());         // NOTE: 用于保证 TcpConnection 对象在 channel 中的生命周期
+    channel_->EnableReading();                 // 开启 channel 的读事件监听(注册 EPOLLIN)
+    connection_callback_(shared_from_this());  // 新连接建立回调
+}
+
+void TcpConnection::ConnectDestroyed() {
+    if (state_ == StateE::kConnected) {
+        SetState(StateE::kDisconnected);
+        channel_->DisableAll();
+        connection_callback_(shared_from_this());
+    }
+    channel_->Remove();
+}
+
 void TcpConnection::HandleRead(Timestamp receive_time) {
     int savedErrno = 0;
-    // 将 fd 中的数据读入 input_buffer_
+    // 从 fd 中读取数据进 input_buffer_
     ssize_t n = input_buffer_.ReadFd(channel_->fd(), &savedErrno);  // NOTE: 读数据是可读回调函数的主要任务
     // NOTE: 接收到数据后, 调用用户自定义的收到消息(数据)后的回调函数
     // 不需要加入 loop_ 的 pending_functors_ 任务队列中
@@ -75,7 +95,7 @@ void TcpConnection::HandleWrite() {
                 channel_->DisableWriting();             // 关闭可写事件监听
                 if (write_complete_callback_) {
                     // NOTE: 将 write_complete_callback_ 放入 loop_ 的 pending_functors_ 任务队列中
-                    // 防止用户回调调用 Send() 再次触发 HandleWrite()
+                    // HACK: 防止用户回调 write_complete_callback_ 调用 Send() 再次触发 HandleWrite() 造成递归调用栈溢出
                     loop_->QueueInLoop([this] { write_complete_callback_(shared_from_this()); });
                 }
                 if (state_ == StateE::kDisconnecting) {
@@ -153,6 +173,7 @@ void TcpConnection::Send(std::string const& msg) {
         if (loop_->IsInLoopThread()) {  // 单 Reactor, 用户调用 conn->Send 时, loop_ 在当前线程
             SendInLoop(msg.c_str(), msg.size());
         } else {  // 多 Reactor, 用户调用 conn->Send 时, loop_ 不在当前线程
+            // NOTE: 选 RunInLoop 原因: 如果是自己线程, 最好立即发
             loop_->RunInLoop([this, msg] { this->SendInLoop(msg.c_str(), msg.size()); });
         }
     }
@@ -226,25 +247,10 @@ bool TcpConnection::IsConnected() const {
     return state_ == StateE::kConnected;
 }
 
-void TcpConnection::ConnectEstablished() {
-    SetState(StateE::kConnected);
-    channel_->Tie(shared_from_this());         // NOTE: 用于保证 TcpConnection 对象在 channel 中的生命周期
-    channel_->EnableReading();                 // 开启 channel 的读事件监听
-    connection_callback_(shared_from_this());  // 新连接建立回调
-}
-
-void TcpConnection::ConnectDestroyed() {
-    if (state_ == StateE::kConnected) {
-        SetState(StateE::kDisconnected);
-        channel_->DisableAll();
-        connection_callback_(shared_from_this());
-    }
-    channel_->Remove();
-}
-
 void TcpConnection::Shutdown() {
     if (state_ == StateE::kConnected) {
         SetState(StateE::kDisconnecting);  // 标记 **正在** 断开连接
+        // NOTE: 用 RunInLoop 原因: 尽快关闭
         loop_->RunInLoop([this] { ShutdownInLoop(); });
     }
 }
