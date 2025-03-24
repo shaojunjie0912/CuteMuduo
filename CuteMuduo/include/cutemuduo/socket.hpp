@@ -14,13 +14,13 @@ public:
     ~Socket();
 
 public:
-    // bind
+    // sockfd 绑定端口和地址
     void BindAddress(InetAddress const &localaddr);
 
-    // listen
+    // 监听
     void Listen();
 
-    // accept
+    // 接收连接, 返回连接的 fd
     int Accept(InetAddress *peeraddr);
 
     // 关闭套接字的写端(即不能往外发送数据)(但读端可以接收数据)
@@ -39,6 +39,7 @@ public:
     void SetKeepAlive(bool on);
 
 public:
+    // 返回 sockfd_
     int sockfd() const;
 
 private:

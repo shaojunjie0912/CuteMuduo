@@ -39,7 +39,7 @@ int Socket::Accept(InetAddress* peeraddr) {  // NOTE: peeraddr: 对端地址
     // NOTE: accept4() 与 accept() 的区别在于可以设置非阻塞和关闭连接时关闭文件描述符
     int connfd = accept4(sockfd_, reinterpret_cast<sockaddr*>(&addr), &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
     if (connfd >= 0) {
-        peeraddr->SetSockAddr(addr);
+        peeraddr->SetSockAddr(addr);  // HACK: InetAddress.addr_ 只能通过 SetSockAddr() 设置
     }
     return connfd;
 }
