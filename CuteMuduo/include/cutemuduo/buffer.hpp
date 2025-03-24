@@ -56,18 +56,18 @@ public:
     void EnsureWritableBytes(size_t len);
 
 public:
-    // 从 fd 上读取数据
+    // 从 fd 上读取数据到 buffer_(可能经历栈上数据转移)
     ssize_t ReadFd(int fd, int* saved_errno);
 
-    // 通过 fd 发送数据
+    // 将 buffer_ 的 **可读空间中所有数据** 写入 fd
     ssize_t WriteFd(int fd, int* saved_errno);
+
+    // 将从 data 地址开始的 len 字节数据追加到 buffer_ 中
+    void Append(char const* data, size_t len);
 
 private:
     // 调整可写空间
     void MakeSpace(size_t len);
-
-    //
-    void Append(char const* data, size_t len);
 
 private:
     char* Begin() {

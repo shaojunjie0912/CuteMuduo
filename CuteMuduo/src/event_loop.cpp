@@ -36,7 +36,7 @@ EventLoop::EventLoop()
     }
     // 添加 wakeup_channel_ 读感兴趣事件
     wakeup_channel_->EnableReading();  // NOTE: !!这里调用 Update 把 wakeup_channel_ 添加进 Poller
-    // 注册 wakeup_channel_ 的读回调函数
+    // 注册 wakeup_channel_ 的读回调函数(写能唤醒, 唤醒后再读)
     wakeup_channel_->SetReadCallback([this](Timestamp) { HandleRead(); });
 }
 
@@ -99,6 +99,10 @@ void EventLoop::QueueInLoop(Functor cb) {
         pending_functors_.push_back(std::move(cb));
     }
 
+    // 如果
+    // 1. 不在当前线程
+    // 2. 正在执行 pending_functors_ 中的回调函数
+    // 则唤醒 EventLoop 所在线程
     if (!IsInLoopThread() || calling_pending_functors_) {
         Wakeup();
     }

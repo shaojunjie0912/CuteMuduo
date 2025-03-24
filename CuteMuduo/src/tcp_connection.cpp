@@ -25,14 +25,10 @@ TcpConnection::TcpConnection(EventLoop* loop, std::string const& name_arg, int s
       local_addr_(local_addr),
       peer_addr_(peer_addr),
       high_water_mark_(64 * 1024 * 1024) {
-    // HACK: 设置 channel 的回调函数, 之后 poller 通知 EventLoop 再通知 channel 感兴趣的事件发生
-    // channel 回调相应的回调函数
+    // NOTE: TcpConnection 的构造函数中**注册** Channel 的回调函数
     channel_->SetReadCallback([this](Timestamp receive_time) { this->HandleRead(receive_time); });
-
     channel_->SetWriteCallback([this]() { this->HandleWrite(); });
-
     channel_->SetCloseCallback([this]() { this->HandleClose(); });
-
     channel_->SetErrorCallback([this]() { this->HandleError(); });
 
     LOG_INFO("TcpConnection::ctor[%s] at fd=%d\n", name_.c_str(), sockfd);
@@ -50,8 +46,10 @@ void TcpConnection::SetState(StateE const& new_s) {
 
 void TcpConnection::HandleRead(Timestamp receive_time) {
     int savedErrno = 0;
-    ssize_t n = input_buffer_.ReadFd(channel_->fd(), &savedErrno);
-    // 接收到数据
+    // 将 fd 中的数据读入 input_buffer_
+    ssize_t n = input_buffer_.ReadFd(channel_->fd(), &savedErrno);  // NOTE: 读数据是可读回调函数的主要任务
+    // NOTE: 接收到数据后, 调用用户自定义的收到消息(数据)后的回调函数
+    // 不需要加入 loop_ 的 pending_functors_ 任务队列中
     if (n > 0) {
         message_callback_(shared_from_this(), &input_buffer_, receive_time);
     }
@@ -67,7 +65,30 @@ void TcpConnection::HandleRead(Timestamp receive_time) {
     }
 }
 
-void TcpConnection::HandleWrite() {}
+void TcpConnection::HandleWrite() {
+    if (channel_->IsWriting()) {
+        int saved_errno = 0;
+        // 将 output_buffer_ 中的 **可读空间中所有数据** 写入 fd
+        ssize_t n = output_buffer_.WriteFd(channel_->fd(), &saved_errno);
+        if (n > 0) {
+            if (output_buffer_.ReadableBytes() == 0) {  // 如果此时 output_buffer_ 中的数据已经全部发送完毕
+                channel_->DisableWriting();             // 关闭可写事件监听
+                if (write_complete_callback_) {
+                    // NOTE: 将 write_complete_callback_ 放入 loop_ 的 pending_functors_ 任务队列中
+                    // 防止用户回调调用 Send() 再次触发 HandleWrite()
+                    loop_->QueueInLoop([this] { write_complete_callback_(shared_from_this()); });
+                }
+                if (state_ == StateE::kDisconnecting) {
+                    ShutdownInLoop();  // 在当前 loop 中关闭连接
+                }
+            } else {
+                LOG_ERROR("TcpConnection::HandleWrite");
+            }
+        } else {
+            LOG_ERROR("TcpConnection fd=%d is down, no more writing", channel_->fd());
+        }
+    }
+}
 
 void TcpConnection::HandleClose() {
     LOG_INFO("TcpConnection::HandleClose fd=%d state=%s\n", channel_->fd(), StateToString().c_str());
@@ -90,6 +111,27 @@ void TcpConnection::HandleError() {
     LOG_ERROR("TcpConnection::HandleError name:%s - SO_ERROR:%d\n", name_.c_str(), err);
 }
 
+void TcpConnection::SetConnectionCallback(ConnectionCallback cb) {
+    connection_callback_ = std::move(cb);
+}
+
+void TcpConnection::SetCloseCallback(CloseCallback cb) {
+    close_callback_ = std::move(cb);
+}
+
+void TcpConnection::SetMessageCallback(MessageCallback cb) {
+    message_callback_ = std::move(cb);
+}
+
+void TcpConnection::SetWriteCompleteCallback(WriteCompleteCallback cb) {
+    write_complete_callback_ = std::move(cb);
+}
+
+void TcpConnection::SetHighWaterMarkCallback(HighWaterMarkCallback cb, size_t high_water_mark) {
+    high_water_mark_callback_ = std::move(cb);
+    high_water_mark_ = high_water_mark;
+}
+
 std::string TcpConnection::StateToString() const {
     switch (state_) {
         case StateE::kConnecting:
@@ -110,21 +152,59 @@ void TcpConnection::Send(std::string const& msg) {
     if (state_ == StateE::kConnected) {
         if (loop_->IsInLoopThread()) {  // 单 Reactor, 用户调用 conn->Send 时, loop_ 在当前线程
             SendInLoop(msg.c_str(), msg.size());
-        } else {
+        } else {  // 多 Reactor, 用户调用 conn->Send 时, loop_ 不在当前线程
             loop_->RunInLoop([this, msg] { this->SendInLoop(msg.c_str(), msg.size()); });
         }
     }
 }
 
 void TcpConnection::SendInLoop(void const* data, size_t len) {
-    if (state_ == StateE::kDisconnected) {
+    if (state_ == StateE::kDisconnected) {  // 已经断开的连接, 不再发送数据
         LOG_ERROR("disconnected, give up writing\n");
         return;
     }
-    ssize_t nwrote = 0;
-    size_t remaining = len;
-    bool fault_error = false;
+    ssize_t nwrote = 0;        // 已经发送的数据长度
+    size_t remaining = len;    // 剩余要发送的数据长度
+    bool fault_error = false;  // 记录是否产生过错误
+
+    // 当 channel_ 没有注册可写事件并且 outputBuffer_ 中没有待发送数据, 则直接将 data 中的数据发送出去
+    if (!channel_->IsWriting() && output_buffer_.ReadableBytes() == 0) {
+        nwrote = write(channel_->fd(), data, len);
+        if (nwrote >= 0) {
+            remaining = len - nwrote;
+            // 消息发送完毕, 调用用户自定义的发送完消息后的回调函数
+            if (remaining == 0 && write_complete_callback_) {
+                loop_->QueueInLoop([this] { write_complete_callback_(shared_from_this()); });
+            }
+        } else {  // nwrote<0
+            nwrote = 0;
+            if (errno != EWOULDBLOCK) {  // EWOULDBLOCK 表示非阻塞情况下没有数据后的正常返回
+                LOG_ERROR("TcpConnection::sendInLoop");
+                if (errno == EPIPE || errno == ECONNRESET) {
+                    fault_error = true;
+                }
+            }
+        }
+    }
+
+    // 1. output_buffer_ 中有待发送数据, 则将 data 中的数据追加到 outputBuffer_ 中, 一起发送
+    // 2. 经过第一个 if 语句(output_buffer_ 中没有待发送数据)后, write 没有写完所有数据
+    if (!fault_error && remaining > 0) {
+        size_t old_len = output_buffer_.ReadableBytes();
+        if (old_len + remaining >= high_water_mark_ && old_len < high_water_mark_ && high_water_mark_callback_) {
+            // 如果要发送的数据长度超过了高水位标记, 则调用用户自定义的高水位标记回调函数
+            loop_->QueueInLoop([&, this] { high_water_mark_callback_(shared_from_this(), old_len + remaining); });
+        }
+        // 将 data 中的数据追加到 outputBuffer_ 中
+        output_buffer_.Append(static_cast<char const*>(data) + nwrote, remaining);
+        if (!channel_->IsWriting()) {
+            channel_->EnableWriting();  // NOTE: 开启 channel 的可写事件监听
+        }
+    }
 }
+
+// TODO: SendFile
+// TODO: SendFileInLoop
 
 EventLoop* TcpConnection::GetLoop() const {
     return loop_;
@@ -162,6 +242,17 @@ void TcpConnection::ConnectDestroyed() {
     channel_->Remove();
 }
 
-void TcpConnection::ShutdownInLoop() {}
+void TcpConnection::Shutdown() {
+    if (state_ == StateE::kConnected) {
+        SetState(StateE::kDisconnecting);  // 标记 **正在** 断开连接
+        loop_->RunInLoop([this] { ShutdownInLoop(); });
+    }
+}
+
+void TcpConnection::ShutdownInLoop() {
+    if (!channel_->IsWriting()) {  // 如果当前 channel 没有写事件, 说明 output_buffer_ 数据已经发送完毕
+        socket_->ShutdownWrite();  // 调用 socket_ 的 ShutdownWrite() 关闭写端
+    }
+}
 
 }  // namespace cutemuduo

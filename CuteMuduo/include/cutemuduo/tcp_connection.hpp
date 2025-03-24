@@ -17,36 +17,47 @@ class Channel;
 class Socket;
 
 class TcpConnection : NonCopyable, public std::enable_shared_from_this<TcpConnection> {
-    void Test();
-
 public:
     TcpConnection(EventLoop* loop, std::string const& name_arg, int sockfd, InetAddress const& localAddr,
                   InetAddress const& peerAddr);
 
     ~TcpConnection();
 
-public:
+private:
+    // 绑定 Channel 的可读回调函数
     void HandleRead(Timestamp receive_time);
 
+    // 绑定 Channel 的可写回调函数
     void HandleWrite();
 
+    // 绑定 Channel 的关闭回调函数
     void HandleClose();
 
+    // 绑定 Channel 的错误回调函数
     void HandleError();
 
 public:
-    void SetConnectionCallback(ConnectionCallback const& cb);
+    // 设置用户自定义的 **连接建立后** 的回调函数(由上层 TcpServer 调用)
+    void SetConnectionCallback(ConnectionCallback cb);
 
-    void SetMessageCallback(MessageCallback const& cb);
+    // 设置用户自定义的 **连接关闭后** 的回调函数(由上层 TcpServer 调用)
+    void SetCloseCallback(CloseCallback cb);
 
-    void SetWriteCompleteCallback(WriteCompleteCallback const& cb);
+    // 设置用户自定义的 **收到消息后** 的回调函数(由上层 TcpServer 调用)
+    void SetMessageCallback(MessageCallback cb);
 
-    void SetHighWaterMarkCallback(HighWaterMarkCallback const& cb, size_t high_water_mark);
+    // 设置用户自定义的 **发送完消息后** 的回调函数(由上层 TcpServer 调用)
+    void SetWriteCompleteCallback(WriteCompleteCallback cb);
 
-    void SetCloseCallback(CloseCallback const& cb);
+    // 设置用户自定义的高水位回调函数(由上层 TcpServer 调用)
+    void SetHighWaterMarkCallback(HighWaterMarkCallback cb, size_t high_water_mark);
 
 public:
+    // 向对端发送消息
     void Send(std::string const& msg);
+
+    // 在当前连接所属的 EventLoop 线程中发送消息
+    void SendInLoop(void const* data, size_t len);
 
 public:
     // 当 TcpServer 接受到新连接时调用
@@ -56,19 +67,26 @@ public:
     void ConnectDestroyed();
 
 private:
-    void SendInLoop(void const* data, size_t len);
+    // 关闭连接
+    void Shutdown();
 
+    // 在 EventLoop 线程中关闭连接
     void ShutdownInLoop();
 
 public:
+    // 获取当前连接所属的 EventLoop
     EventLoop* GetLoop() const;
 
+    // 获取当前连接的名称
     std::string const& GetName() const;
 
+    // 获取当前连接的本地地址信息
     InetAddress const& GetLocalAddress() const;
 
+    // 获取当前连接的对端地址信息
     InetAddress const& GetPeerAddress() const;
 
+    // 判断当前连接是否已经建立
     bool IsConnected() const;
 
 private:
@@ -84,29 +102,30 @@ private:
     void SetState(StateE const& new_s);
 
 private:
-    EventLoop* loop_;            // 所属 EventLoop
+    EventLoop* loop_;            // 所属 **Sub** EventLoop
     std::string name_;           // 连接名称
     std::atomic<StateE> state_;  // 连接状态
     bool reading_;               // 是否正在监听读事件
 
-    std::unique_ptr<Socket> socket_;    // fd 底层的封装(bind, listen, accept)
-    std::unique_ptr<Channel> channel_;  // fd 对应的 Channel
+    std::unique_ptr<Socket> socket_;    // 已经连接的 socketfd
+    std::unique_ptr<Channel> channel_;  // socketfd 对应的 Channel
 
-    InetAddress local_addr_;  // 本服务器地址
-    InetAddress peer_addr_;   // 对端地址
+    InetAddress local_addr_;  // 服务器地址信息
+    InetAddress peer_addr_;   // 客户端地址信息
 
     // 用户自定义这些事件的处理函数, 传递给 TcpServer
     // TcpServer 创建 TcpConnection 对象时设置这些回调函数到 TcpConnection 中
 
-    size_t high_water_mark_;                          // 高水位标记
-    ConnectionCallback connection_callback_;          // 连接建立回调
-    MessageCallback message_callback_;                // 消息到达回调
-    WriteCompleteCallback write_complete_callback_;   // 消息发送完毕回调
-    HighWaterMarkCallback high_water_mark_callback_;  // 高水位回调
-    CloseCallback close_callback_;                    // 连接关闭回调
+    ConnectionCallback connection_callback_;         // **用户自定义** 连接建立后的回调函数
+    CloseCallback close_callback_;                   // **用户自定义** 连接关闭后的回调函数
+    MessageCallback message_callback_;               // **用户自定义** 收到消息后的回调函数
+    WriteCompleteCallback write_complete_callback_;  // **用户自定义** 发送完消息后的回调函数
 
-    Buffer input_buffer_;   // 输入缓冲区
-    Buffer output_buffer_;  // 输出缓冲区
+    size_t high_water_mark_;                          // 高水位标记(对用户态缓冲区 output_buffer_ 的大小限制)
+    HighWaterMarkCallback high_water_mark_callback_;  // 高水位回调函数
+
+    Buffer input_buffer_;   // 该 TCP 连接对应的 **用户** 输入缓冲区
+    Buffer output_buffer_;  // 该 TCP 连接对应的 **用户** 输出缓冲区
 };
 
 }  // namespace cutemuduo

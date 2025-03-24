@@ -112,9 +112,12 @@ ssize_t Buffer::ReadFd(int fd, int* saved_errno) {
 }
 
 ssize_t Buffer::WriteFd(int fd, int* saved_errno) {
-    ssize_t n = write(fd, Peek(), ReadableBytes());
+    ssize_t n = write(fd, Peek(), ReadableBytes());  // 把 buffer_ 中的所有可读数据写入 fd
     if (n < 0) {
         *saved_errno = errno;
+    } else {
+        // TODO: (自己写的) 更新读游标 reader_index_
+        Retrieve(n);
     }
     return n;
 }

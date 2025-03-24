@@ -41,6 +41,7 @@ public:
     // 注册 Channel 的错误回调函数
     void SetErrorCallback(EventCallback cb);
 
+public:
     // 添加读感兴趣事件
     void EnableReading();
 
@@ -56,13 +57,14 @@ public:
     // 删除所有感兴趣事件
     void DisableAll();
 
-    // 判断 fd **当前**是否没有事件
+public:
+    // 判断 fd **当前** 是否没有事件
     bool IsNoneEvent() const;
 
-    // 判断 fd **当前**是否有写事件
+    // 判断 fd **当前** 是否有写事件
     bool IsWriting() const;
 
-    // 判断 fd **当前**是否有读事件
+    // 判断 fd **当前** 是否有读事件
     bool IsReading() const;
 
     // 更新实际发生的事件
@@ -120,10 +122,10 @@ private:
     static const int kWriteEvent = EPOLLOUT;
 
     // 事件发生时对应的回调函数
-    ReadEventCallback read_callback_;  // 绑定的是TcpConnection::handleRead(Timestamp receiveTime)
-    EventCallback write_callback_;     // 绑定的是TcpConnection::handleWrite()
-    EventCallback close_callback_;     // 绑定的是TcpConnection::handleClose()
-    EventCallback error_callback_;     // 绑定的是TcpConnection::handleError()
+    ReadEventCallback read_callback_;  // 绑定的是 TcpConnection::handleRead(Timestamp receiveTime)
+    EventCallback write_callback_;     // 绑定的是 TcpConnection::handleWrite()
+    EventCallback close_callback_;     // 绑定的是 TcpConnection::handleClose()
+    EventCallback error_callback_;     // 绑定的是 TcpConnection::handleError()
 
     // HACK: 想象成<监视>TcpConnection的生命周期
     // 如果 lock() 失败, 说明 TcpConnection 对象已经销毁了, 就不调用回调
