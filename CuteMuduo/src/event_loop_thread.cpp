@@ -18,18 +18,21 @@ EventLoopThread::~EventLoopThread() {
 }
 
 EventLoop* EventLoopThread::StartLoop() {
-    thread_.Start();  // 会创建一个新线程并执行 ThreadFunc()
+    // NOTE: 会创建一个新线程并执行 ThreadFunc()
+    // ThreadFunc 中开启事件循环
+    thread_.Start();
     EventLoop* loop = nullptr;
     {
         std::unique_lock lk{mtx_};
+        // 等待 loop_ 在 ThreadFunc() 中被赋值局部 loop 的地址然后唤醒
         cv_.wait(lk, [this] { return loop_ != nullptr; });
         loop = loop_;
     }
-    return loop;
+    return loop;  // 返回 loop 地址
 }
 
 void EventLoopThread::ThreadFunc() {
-    EventLoop loop;
+    EventLoop loop;  // NOTE: 创建局部 loop, 也即 one loop per thread 中的 loop
     if (cb_) {
         cb_(&loop);  // 执行用户自定义线程初始化回调函数
     }
@@ -38,7 +41,7 @@ void EventLoopThread::ThreadFunc() {
         loop_ = &loop;
         cv_.notify_one();
     }
-    loop.Loop();  // 开始事件循环, 线程会阻塞在这里
+    loop.Loop();  // NOTE: 开始事件循环, 线程会阻塞在这里(局部 loop 生命周期一直存在)
     std::unique_lock lk{mtx_};
     loop_ = nullptr;
 }

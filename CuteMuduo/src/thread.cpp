@@ -1,3 +1,5 @@
+#include <future>
+//
 #include <cutemuduo/current_thread.hpp>
 #include <cutemuduo/thread.hpp>
 
@@ -24,16 +26,17 @@ Thread::~Thread() {
 }
 
 void Thread::Start() {
+    // TODO: 这里需要再验证一下, 虽然 Claude Sonnet 说正确
     started_ = true;
-    sem_t sem;  // 信号量(等子线程 tid_ 被成功赋值)
-    sem_init(&sem, false, 0);
-    thread_ = std::make_shared<std::thread>([&] {
+    std::promise<void> p;
+    auto f = p.get_future();
+    // HACK: 注意 () 和 mutable
+    thread_ = std::make_shared<std::thread>([this, p = std::move(p)]() mutable {
         tid_ = current_thread::Tid();  // 更新线程 ID
-        sem_post(&sem);                // 通知主线程 tid_ 已经被赋值
+        p.set_value();                 // 通知主线程
         func_();
     });
-    // 这里必须等待获取上面新创建的线程的 tid_ 值
-    sem_wait(&sem);
+    f.wait();  // 等待线程 ID 更新
 }
 
 void Thread::Join() {

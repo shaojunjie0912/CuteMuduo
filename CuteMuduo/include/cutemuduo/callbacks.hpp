@@ -10,6 +10,8 @@ class TcpConnection;
 class Timestamp;
 
 // NOTE: 每个回调都传入 TcpConnectionPtr 参数, 为了知道是 **哪个连接** 发生了事件
+
+// 指向 TcpConnection 的智能指针
 using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
 
 using ConnectionCallback = std::function<void(const TcpConnectionPtr &)>;

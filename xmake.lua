@@ -7,7 +7,7 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate")
 
 set_warnings("allextra")
-
-add_requires("fmt")
+set_defaultmode("debug")
 
 includes("CuteMuduo")
+includes("tests")

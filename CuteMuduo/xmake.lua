@@ -1,5 +1,5 @@
 target("cutemuduo", function()
-    set_kind("binary")
+    set_kind("static")
     add_files("src/*.cpp")
-    add_includedirs("include")
+    add_includedirs("include", { public = true })
 end)

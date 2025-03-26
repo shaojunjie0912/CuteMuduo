@@ -15,11 +15,11 @@ void EventLoopThreadPool::SetThreadNum(int num_threads) {
 void EventLoopThreadPool::Start(ThreadInitCallback const& cb) {
     started_ = true;
 
-    for (int i{0}; i < (int)num_threads_; ++i) {
+    for (int i{0}; i < num_threads_; ++i) {
         char* buf = new char[name_.size() + 32]{};
         snprintf(buf, name_.size() + 32, "%s%d", name_.c_str(), i);
         auto t{std::make_unique<EventLoopThread>(cb, buf)};  // NOTE: 智能指针
-        loops_.push_back(t->StartLoop());                    // 底层创建线程绑定新 EventLoop 并返回 loop 地址
+        loops_.push_back(t->StartLoop());                    // t->StartLoop() 将开启线程并启动事件循环(返回 loop 地址)
         threads_.push_back(std::move(t));                    // 移动 unique_ptr
         delete[] buf;
     }
@@ -35,7 +35,7 @@ EventLoop* EventLoopThreadPool::GetNextLoop() {
     if (!loops_.empty()) {
         loop = loops_[next_];
         ++next_;
-        if (next_ >= loops_.size()) {
+        if ((size_t)next_ >= loops_.size()) {
             next_ = 0;
         }
     }

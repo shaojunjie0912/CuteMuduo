@@ -22,7 +22,7 @@ public:
 
     ~EventLoopThread();
 
-    // 开启一个线程并在内部启动事件循环
+    // 开启一个线程并内部调用 ThreadFunc 启动事件循环(返回 loop 地址)
     EventLoop* StartLoop();
 
 private:

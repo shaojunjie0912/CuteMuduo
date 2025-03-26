@@ -53,8 +53,9 @@ void Acceptor::HandleRead() {
     int connfd = accept_socket_.Accept(&peer_addr);
     if (connfd >= 0) {
         // 如果有新连接回调函数则调用
-        if (new_connection_callback_) {  // NOTE: 由 TcpServer 通过 Acceptor::SetNewConnectionCallback 设置
-            // TODO: MainReactor(MainEventLoop) -> SubReactor(SubEventLoop)
+        // NOTE: 由 TcpServer 通过 Acceptor::SetNewConnectionCallback 设置
+        if (new_connection_callback_) {
+            // NOTE: 将 connfd 和 peer_addr 传递给 TcpServer::NewConnection
             new_connection_callback_(connfd, peer_addr);
         }
         // 否则关闭连接

@@ -21,6 +21,8 @@ public:
     TcpConnection(EventLoop* loop, std::string const& name_arg, int sockfd, InetAddress const& localAddr,
                   InetAddress const& peerAddr);
 
+    // 析构函数( TODO: **不能在内部调用 ConnectDestroyed** )
+    // 正在析构的对象捕获 [this] 危险, 且如果调用 loop_->RunInLoop 不能保证 loop_ 还存在
     ~TcpConnection();
 
 private:
@@ -60,10 +62,10 @@ public:
     void SendInLoop(void const* data, size_t len);
 
 public:
-    // 当 TcpServer 接受到新连接时调用
+    // 当 **TcpServer** 接受到新连接时调用
     void ConnectEstablished();
 
-    // 当 TcpServer 连接销毁时调用
+    // 当 **TcpServer** 连接销毁时调用
     void ConnectDestroyed();
 
 private:

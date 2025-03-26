@@ -43,13 +43,13 @@ private:
     void SetDefaultName();
 
 private:
-    bool started_;                         // 是否已经开始执行
-    bool joined_;                          // 是否已经执行完毕
-    std::shared_ptr<std::thread> thread_;  // 线程对象
-    pid_t tid_;                            // 线程 ID
-    ThreadFunc func_;                      // 线程执行的函数
-    std::string name_;                     // 线程名称
-    static std::atomic_int num_created_;   // 已经创建的线程数
+    bool started_;                                   // 是否已经开始执行
+    bool joined_;                                    // 是否已经执行完毕
+    std::shared_ptr<std::thread> thread_;            // 线程对象
+    pid_t tid_;                                      // 线程 ID
+    ThreadFunc func_;                                // 线程执行的函数
+    std::string name_;                               // 线程名称
+    inline static std::atomic_int num_created_ = 0;  // 已经创建的线程数(NOTE: 静态变量初始化)
 };
 
 }  // namespace cutemuduo

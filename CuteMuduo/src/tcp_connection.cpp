@@ -214,7 +214,9 @@ void TcpConnection::SendInLoop(void const* data, size_t len) {
         size_t old_len = output_buffer_.ReadableBytes();
         if (old_len + remaining >= high_water_mark_ && old_len < high_water_mark_ && high_water_mark_callback_) {
             // 如果要发送的数据长度超过了高水位标记, 则调用用户自定义的高水位标记回调函数
-            loop_->QueueInLoop([&, this] { high_water_mark_callback_(shared_from_this(), old_len + remaining); });
+            // NOTE: 按值捕获局部变量!!
+            loop_->QueueInLoop(
+                [old_len, remaining, this] { high_water_mark_callback_(shared_from_this(), old_len + remaining); });
         }
         // 将 data 中的数据追加到 outputBuffer_ 中
         output_buffer_.Append(static_cast<char const*>(data) + nwrote, remaining);
