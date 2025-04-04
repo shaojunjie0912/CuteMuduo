@@ -65,6 +65,9 @@ public:
     // 将从 data 地址开始的 len 字节数据追加到 buffer_ 中
     void Append(char const* data, size_t len);
 
+public:
+    char const* FindCRLF() const;
+
 private:
     // 调整可写空间
     void MakeSpace(size_t len);
@@ -82,6 +85,8 @@ private:
     std::vector<char> buffer_;  //
     size_t reader_index_;
     size_t writer_index_;
+
+    inline static const std::string kCRLF = "\r\n";  // CRLF
 };
 
 }  // namespace cutemuduo

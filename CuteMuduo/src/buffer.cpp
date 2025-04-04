@@ -122,4 +122,10 @@ ssize_t Buffer::WriteFd(int fd, int* saved_errno) {
     return n;
 }
 
+char const* Buffer::FindCRLF() const {
+    // std::search 查找 \r\n 子序列是否在 buffer_ 中
+    char const* crlf = std::search(Peek(), BeginWrite(), kCRLF.begin(), kCRLF.end());
+    return crlf == BeginWrite() ? nullptr : crlf;
+}
+
 }  // namespace cutemuduo
