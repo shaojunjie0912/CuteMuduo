@@ -43,6 +43,9 @@ public:
     // 移动 reader_index_ 表示读出 len 字节数据
     void Retrieve(size_t len);
 
+    // 移动 reader_index_ 表示读出直到 end 的所有数据
+    void RetrieveUntil(char const* end);
+
     // 移动 reader_index_ & writer_index_ 表示读出所有数据
     void RetrieveAll();
 

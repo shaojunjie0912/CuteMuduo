@@ -40,6 +40,10 @@ void Buffer::Retrieve(size_t len) {
     }
 }
 
+void Buffer::RetrieveUntil(char const* end) {
+    Retrieve(end - Peek());  // 计算出 len
+}
+
 void Buffer::RetrieveAll() {
     reader_index_ = kCheapPrepend;
     writer_index_ = kCheapPrepend;
