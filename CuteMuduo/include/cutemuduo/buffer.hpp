@@ -68,6 +68,8 @@ public:
     // 将从 data 地址开始的 len 字节数据追加到 buffer_ 中
     void Append(char const* data, size_t len);
 
+    void Append(char const* data);
+
 public:
     char const* FindCRLF() const;
 
@@ -76,13 +78,9 @@ private:
     void MakeSpace(size_t len);
 
 private:
-    char* Begin() {
-        return buffer_.data();
-    }
+    char* Begin() { return buffer_.data(); }
 
-    char const* Begin() const {
-        return buffer_.data();
-    }
+    char const* Begin() const { return buffer_.data(); }
 
 private:
     std::vector<char> buffer_;  //

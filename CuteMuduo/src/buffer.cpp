@@ -1,3 +1,4 @@
+#include <string.h>
 #include <sys/uio.h>
 #include <unistd.h>
 //
@@ -8,29 +9,17 @@ namespace cutemuduo {
 Buffer::Buffer(size_t initial_size)
     : buffer_(kCheapPrepend + initial_size), reader_index_(kCheapPrepend), writer_index_(kCheapPrepend) {}
 
-size_t Buffer::ReadableBytes() const {
-    return writer_index_ - reader_index_;
-}
+size_t Buffer::ReadableBytes() const { return writer_index_ - reader_index_; }
 
-size_t Buffer::WritableBytes() const {
-    return buffer_.size() - writer_index_;
-}
+size_t Buffer::WritableBytes() const { return buffer_.size() - writer_index_; }
 
-size_t Buffer::PrependableBytes() const {
-    return reader_index_;
-}
+size_t Buffer::PrependableBytes() const { return reader_index_; }
 
-char const* Buffer::Peek() const {
-    return Begin() + reader_index_;
-}
+char const* Buffer::Peek() const { return Begin() + reader_index_; }
 
-char const* Buffer::BeginWrite() const {
-    return Begin() + writer_index_;
-}
+char const* Buffer::BeginWrite() const { return Begin() + writer_index_; }
 
-char* Buffer::BeginWrite() {
-    return Begin() + writer_index_;
-}
+char* Buffer::BeginWrite() { return Begin() + writer_index_; }
 
 void Buffer::Retrieve(size_t len) {
     if (len < ReadableBytes()) {
@@ -55,9 +44,7 @@ std::string Buffer::RetrieveAsString(size_t len) {
     return result;
 }
 
-std::string Buffer::RetrieveAllAsString() {
-    return RetrieveAsString(ReadableBytes());
-}
+std::string Buffer::RetrieveAllAsString() { return RetrieveAsString(ReadableBytes()); }
 
 void Buffer::EnsureWritableBytes(size_t len) {
     if (WritableBytes() < len) {
@@ -84,6 +71,11 @@ void Buffer::Append(char const* data, size_t len) {
     EnsureWritableBytes(len);
     std::copy(data, data + len, BeginWrite());
     writer_index_ += len;
+}
+
+void Buffer::Append(char const* data) {
+    auto len{strlen(data)};
+    Append(data, len);
 }
 
 // readv 散布读: 将连续的数据读入内存分散的多个缓冲区
