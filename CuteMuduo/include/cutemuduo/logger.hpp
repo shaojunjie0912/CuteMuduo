@@ -21,55 +21,54 @@ private:
     LogLevel log_level_;
 };
 
-// LOG_INFO("%s %d", arg1, arg2)
-#define LOG_INFO(format, ...)                       \
-    do {                                            \
-        Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(LogLevel::INFO);         \
-        char buf[1024] = {0};                       \
-        snprintf(buf, 1024, format, ##__VA_ARGS__); \
-        logger.Log(buf);                            \
+#define LOG_INFO(format, ...)                                         \
+    do {                                                              \
+        cutemuduo::Logger &logger = cutemuduo::Logger::GetInstance(); \
+        logger.SetLogLevel(cutemuduo::LogLevel::INFO);                \
+        char buf[1024] = {0};                                         \
+        std::snprintf(buf, 1024, format, ##__VA_ARGS__);              \
+        logger.Log(buf);                                              \
     } while (0)
 
-#define LOG_WARNING(format, ...)                    \
-    do {                                            \
-        Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(LogLevel::WARNING);      \
-        char buf[1024] = {0};                       \
-        snprintf(buf, 1024, format, ##__VA_ARGS__); \
-        logger.Log(buf);                            \
+#define LOG_WARNING(format, ...)                                      \
+    do {                                                              \
+        cutemuduo::Logger &logger = cutemuduo::Logger::GetInstance(); \
+        logger.SetLogLevel(cutemuduo::LogLevel::WARNING);             \
+        char buf[1024] = {0};                                         \
+        std::snprintf(buf, 1024, format, ##__VA_ARGS__);              \
+        logger.Log(buf);                                              \
     } while (0)
 
-#define LOG_ERROR(format, ...)                      \
-    do {                                            \
-        Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(LogLevel::ERROR);        \
-        char buf[1024] = {0};                       \
-        snprintf(buf, 1024, format, ##__VA_ARGS__); \
-        logger.Log(buf);                            \
+#define LOG_ERROR(format, ...)                                        \
+    do {                                                              \
+        cutemuduo::Logger &logger = cutemuduo::Logger::GetInstance(); \
+        logger.SetLogLevel(cutemuduo::LogLevel::ERROR);               \
+        char buf[1024] = {0};                                         \
+        std::snprintf(buf, 1024, format, ##__VA_ARGS__);              \
+        logger.Log(buf);                                              \
     } while (0)
 
-#define LOG_FATAL(format, ...)                      \
-    do {                                            \
-        Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(LogLevel::FATAL);        \
-        char buf[1024] = {0};                       \
-        snprintf(buf, 1024, format, ##__VA_ARGS__); \
-        logger.Log(buf);                            \
-        exit(-1);                                   \
+#define LOG_FATAL(format, ...)                                        \
+    do {                                                              \
+        cutemuduo::Logger &logger = cutemuduo::Logger::GetInstance(); \
+        logger.SetLogLevel(cutemuduo::LogLevel::FATAL);               \
+        char buf[1024] = {0};                                         \
+        std::snprintf(buf, 1024, format, ##__VA_ARGS__);              \
+        logger.Log(buf);                                              \
+        exit(-1);                                                     \
     } while (0)
 
 #ifdef MUDEBUG
-#define LOG_DEBUG(format, ...)                      \
-    do {                                            \
-        Logger &logger = Logger::GetInstance();     \
-        logger.SetLogLevel(LoLogLevel::DEBUG);      \
-        char buf[1024] = {0};                       \
-        snprintf(buf, 1024, format, ##__VA_ARGS__); \
-        logger.Log(buf);                            \
+#define LOG_DEBUG(format, ...)                                        \
+    do {                                                              \
+        cutemuduo::Logger &logger = cutemuduo::Logger::GetInstance(); \
+        logger.SetLogLevel(cutemuduo::LogLevel::DEBUG);               \
+        char buf[1024] = {0};                                         \
+        std::snprintf(buf, 1024, format, ##__VA_ARGS__);              \
+        logger.Log(buf);                                              \
     } while (0)
 #else
-#define LOG_DEBUG(format, ...)
+#define LOG_DEBUG(format, ...)  // 空定义
 #endif
 
 }  // namespace cutemuduo
