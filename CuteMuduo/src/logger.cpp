@@ -11,15 +11,16 @@ Logger& Logger::GetInstance() {
     return ins;
 }
 
-void Logger::SetLogLevel(LogLevel const& level) {
-    log_level_ = level;
-}
+void Logger::SetLogLevel(LogLevel const& level) { log_level_ = level; }
 
 void Logger::Log(std::string_view msg) {
     std::string pre = "";
     switch (log_level_) {
         case LogLevel::INFO:
             pre = "[INFO]";
+            break;
+        case LogLevel::WARNING:
+            pre = "[WARNING]";
             break;
         case LogLevel::ERROR:
             pre = "[ERROR]";

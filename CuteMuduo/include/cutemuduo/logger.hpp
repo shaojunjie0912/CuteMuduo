@@ -6,7 +6,7 @@
 
 namespace cutemuduo {
 
-enum class LogLevel { INFO, ERROR, FATAL, DEBUG };
+enum class LogLevel { INFO, WARNING, ERROR, FATAL, DEBUG };
 
 // 单例日志类
 class Logger : NonCopyable {
@@ -26,6 +26,15 @@ private:
     do {                                            \
         Logger &logger = Logger::GetInstance();     \
         logger.SetLogLevel(LogLevel::INFO);         \
+        char buf[1024] = {0};                       \
+        snprintf(buf, 1024, format, ##__VA_ARGS__); \
+        logger.Log(buf);                            \
+    } while (0)
+
+#define LOG_WARNING(format, ...)                    \
+    do {                                            \
+        Logger &logger = Logger::GetInstance();     \
+        logger.SetLogLevel(LogLevel::WARNING);      \
         char buf[1024] = {0};                       \
         snprintf(buf, 1024, format, ##__VA_ARGS__); \
         logger.Log(buf);                            \
