@@ -55,8 +55,11 @@ public:
     void SetHighWaterMarkCallback(HighWaterMarkCallback cb, size_t high_water_mark);
 
 public:
-    // 向对端发送消息
+    // 向对端发送消息(std::string)
     void Send(std::string const& msg);
+
+    // 向对端发送消息(Buffer)
+    void Send(Buffer* buffer);
 
     // 在当前连接所属的 EventLoop 线程中发送消息
     void SendInLoop(void const* data, size_t len);

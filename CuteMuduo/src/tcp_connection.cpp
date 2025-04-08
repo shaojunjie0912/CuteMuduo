@@ -44,9 +44,7 @@ TcpConnection::~TcpConnection() {
     LOG_INFO("TcpConnection::dtor[%s] at fd=%d state=%s\n", name_.c_str(), channel_->fd(), StateToString().c_str());
 }
 
-void TcpConnection::SetState(StateE const& new_s) {
-    state_ = new_s;
-}
+void TcpConnection::SetState(StateE const& new_s) { state_ = new_s; }
 
 void TcpConnection::ConnectEstablished() {
     SetState(StateE::kConnected);
@@ -131,21 +129,13 @@ void TcpConnection::HandleError() {
     LOG_ERROR("TcpConnection::HandleError name:%s - SO_ERROR:%d\n", name_.c_str(), err);
 }
 
-void TcpConnection::SetConnectionCallback(ConnectionCallback cb) {
-    connection_callback_ = std::move(cb);
-}
+void TcpConnection::SetConnectionCallback(ConnectionCallback cb) { connection_callback_ = std::move(cb); }
 
-void TcpConnection::SetCloseCallback(CloseCallback cb) {
-    close_callback_ = std::move(cb);
-}
+void TcpConnection::SetCloseCallback(CloseCallback cb) { close_callback_ = std::move(cb); }
 
-void TcpConnection::SetMessageCallback(MessageCallback cb) {
-    message_callback_ = std::move(cb);
-}
+void TcpConnection::SetMessageCallback(MessageCallback cb) { message_callback_ = std::move(cb); }
 
-void TcpConnection::SetWriteCompleteCallback(WriteCompleteCallback cb) {
-    write_complete_callback_ = std::move(cb);
-}
+void TcpConnection::SetWriteCompleteCallback(WriteCompleteCallback cb) { write_complete_callback_ = std::move(cb); }
 
 void TcpConnection::SetHighWaterMarkCallback(HighWaterMarkCallback cb, size_t high_water_mark) {
     high_water_mark_callback_ = std::move(cb);
@@ -174,7 +164,21 @@ void TcpConnection::Send(std::string const& msg) {
             SendInLoop(msg.c_str(), msg.size());
         } else {  // 多 Reactor, 用户调用 conn->Send 时, loop_ 不在当前线程
             // NOTE: 选 RunInLoop 原因: 如果是自己线程, 最好立即发
-            loop_->RunInLoop([this, msg] { this->SendInLoop(msg.c_str(), msg.size()); });
+            loop_->RunInLoop([this, msg] { SendInLoop(msg.c_str(), msg.size()); });
+        }
+    }
+}
+
+void TcpConnection::Send(Buffer* buffer) {
+    if (state_ == StateE::kConnected) {
+        if (loop_->IsInLoopThread()) {
+            SendInLoop(buffer->Peek(), buffer->ReadableBytes());
+            buffer->RetrieveAll();
+        } else {
+            loop_->RunInLoop([this, buffer] {
+                SendInLoop(buffer->Peek(), buffer->ReadableBytes());
+                buffer->RetrieveAll();
+            });
         }
     }
 }
@@ -229,25 +233,15 @@ void TcpConnection::SendInLoop(void const* data, size_t len) {
 // TODO: SendFile
 // TODO: SendFileInLoop
 
-EventLoop* TcpConnection::GetLoop() const {
-    return loop_;
-}
+EventLoop* TcpConnection::GetLoop() const { return loop_; }
 
-std::string const& TcpConnection::GetName() const {
-    return name_;
-}
+std::string const& TcpConnection::GetName() const { return name_; }
 
-InetAddress const& TcpConnection::GetLocalAddress() const {
-    return local_addr_;
-}
+InetAddress const& TcpConnection::GetLocalAddress() const { return local_addr_; }
 
-InetAddress const& TcpConnection::GetPeerAddress() const {
-    return peer_addr_;
-}
+InetAddress const& TcpConnection::GetPeerAddress() const { return peer_addr_; }
 
-bool TcpConnection::IsConnected() const {
-    return state_ == StateE::kConnected;
-}
+bool TcpConnection::IsConnected() const { return state_ == StateE::kConnected; }
 
 void TcpConnection::Shutdown() {
     if (state_ == StateE::kConnected) {
