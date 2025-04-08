@@ -71,7 +71,6 @@ public:
     // 当 **TcpServer** 连接销毁时调用
     void ConnectDestroyed();
 
-private:
     // 关闭连接
     void Shutdown();
 
