@@ -124,4 +124,6 @@ char const* Buffer::FindCRLF() const {
     return crlf == BeginWrite() ? nullptr : crlf;
 }
 
+std::string Buffer::ToString() const { return std::string(Peek(), ReadableBytes()); }
+
 }  // namespace cutemuduo

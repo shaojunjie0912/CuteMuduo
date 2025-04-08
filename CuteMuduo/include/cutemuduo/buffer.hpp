@@ -71,6 +71,9 @@ public:
     void Append(char const* data);
 
 public:
+    std::string ToString() const;
+
+public:
     char const* FindCRLF() const;
 
 private:
