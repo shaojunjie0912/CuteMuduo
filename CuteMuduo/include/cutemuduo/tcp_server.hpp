@@ -61,6 +61,8 @@ public:
 
     std::string ip_port() const { return ip_port_; }
 
+    EventLoop* loop() const { return loop_; }
+
 private:
     using ConnectionMap = std::unordered_map<std::string, TcpConnectionPtr>;
 

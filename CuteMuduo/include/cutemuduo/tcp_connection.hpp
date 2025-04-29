@@ -1,5 +1,6 @@
 #pragma once
 
+#include <any>
 #include <atomic>
 #include <memory>
 #include <string>
@@ -93,6 +94,12 @@ public:
     // 判断当前连接是否已经建立
     bool IsConnected() const;
 
+    void SetContext(std::any const& context) { context_ = context; };
+
+    std::any const& GetContext() const { return context_; }
+
+    std::any* GetMutableContext() { return &context_; }
+
 private:
     enum class StateE {
         kConnecting,     // 正在连接
@@ -130,6 +137,8 @@ private:
 
     Buffer input_buffer_;   // 该 TCP 连接对应的 **用户** 输入缓冲区
     Buffer output_buffer_;  // 该 TCP 连接对应的 **用户** 输出缓冲区
+
+    std::any context_;
 };
 
 }  // namespace cutemuduo
