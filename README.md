@@ -23,7 +23,7 @@ CuteMuduo 是一个现代化的 C++ 网络库，是对陈硕老师的 [muduo](ht
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/CuteMuduo.git
+git clone https://github.com/shaojunjie0912/CuteMuduo.git
 cd CuteMuduo
 
 # 使用 xmake 构建

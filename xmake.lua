@@ -13,4 +13,4 @@ set_defaultmode("debug")
 -- add_packages("catch2")
 
 includes("CuteMuduo")
--- includes("tests")
+includes("tests")
