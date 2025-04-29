@@ -56,6 +56,11 @@ private:
 
     void RemoveConnectionInLoop(TcpConnectionPtr const& conn);
 
+public:
+    std::string name() const { return name_; }
+
+    std::string ip_port() const { return ip_port_; }
+
 private:
     using ConnectionMap = std::unordered_map<std::string, TcpConnectionPtr>;
 
