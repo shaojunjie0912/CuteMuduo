@@ -6,7 +6,8 @@ namespace cutemuduo {
 EventLoopThread::EventLoopThread(ThreadInitCallback const& cb, std::string const& name)
     : loop_(nullptr),
       exiting_(false),
-      thread_([this] { ThreadFunc(); }, name),  // NOTE: 用 ThreadFunc 初始化线程对象(还未执行)要等 StartLoop() 调用
+      thread_([this] { ThreadFunc(); },
+              name),  // NOTE: 用 ThreadFunc 初始化线程对象(还未执行)要等 StartLoop() 调用
       cb_(cb) {}
 
 EventLoopThread::~EventLoopThread() {
